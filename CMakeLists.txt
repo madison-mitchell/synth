@@ -9,10 +9,28 @@ set(CMAKE_CXX_STANDARD 17)
 
 pico_sdk_init()
 
-add_executable(pico_synth main.c)
+# Run Python script to generate drum sample headers from WAV files
+add_custom_command(
+    OUTPUT drum_samples.h drum_kick.h drum_snare.h drum_hihat.h drum_floor.h
+    COMMAND python3 wav_to_c.py
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/audio/Rock-Kit-Kick-ff-1.wav
+            ${CMAKE_CURRENT_SOURCE_DIR}/audio/Rock-Snare-ff-1.wav
+            ${CMAKE_CURRENT_SOURCE_DIR}/audio/Rock-Kit-HiHat-Tip-1.wav
+            ${CMAKE_CURRENT_SOURCE_DIR}/audio/Rock-Kit-Floor-1.wav
+            ${CMAKE_CURRENT_SOURCE_DIR}/wav_to_c.py
+    COMMENT "Generating drum sample headers from WAV files..."
+)
+
+add_executable(pico_synth main.c
+    ${CMAKE_CURRENT_BINARY_DIR}/drum_samples.h
+)
 
 # Generate C header from i2s.pio (must be after add_executable)
 pico_generate_pio_header(pico_synth ${CMAKE_CURRENT_LIST_DIR}/i2s.pio)
+
+# Include generated drum sample headers
+target_include_directories(pico_synth PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(pico_synth
     pico_stdlib
